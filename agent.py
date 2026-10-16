@@ -12,6 +12,10 @@ Stage 2: guardrails.
   are sent back for revision. Required safety warnings are added by code,
   so they always appear no matter how Claude words its answer.
 
+Stage 3: long-term memory.
+  Claude can look up past outings (recall_outings) and save new ones
+  (save_outing). Every save is shown to you first and needs a yes.
+
 Run it with:   C:\\Users\\ryanb\\.venvs\\pack-planner\\Scripts\\python agent.py
 """
 
@@ -21,13 +25,22 @@ from datetime import date
 import anthropic
 
 import guardrails
+import memory
 from tools import TOOL_DEFINITIONS, run_tool
 
 MODEL = "claude-haiku-5-5"
 MAX_TOOL_ROUNDS = 15  # safety limit so a confused agent can't loop forever
 
 PROFILE = guardrails.load_profile()
-ALL_TOOLS = TOOL_DEFINITIONS + [guardrails.SUBMIT_PLAN_TOOL]
+ALL_TOOLS = TOOL_DEFINITIONS + [
+    guardrails.SUBMIT_PLAN_TOOL,
+    memory.RECALL_OUTINGS_TOOL,
+    memory.SAVE_OUTING_TOOL,
+]
+
+# Tools that mean "Claude is planning an outing". If any of these ran but no
+# plan passed the safety check, the answer gets a "not safety-checked" label.
+PLANNING_TOOLS = {"find_dog_friendly_places", "get_weather_forecast", "submit_plan"}
 
 
 def build_system_prompt(profile: dict) -> str:
@@ -53,6 +66,14 @@ check the weather, then submit each option with submit_plan before recommending 
 - For hikes, prefer quieter trails and quieter times if a dog above is reactive. \
 For dog parks, walks in town and events, crowds are fine.
 - Map data is often incomplete. Don't claim a place allows dogs unless the data says so.
+
+Memory:
+- Before recommending places, call recall_outings to see where they've been and how \
+it went. Favor highly rated places; if a place went badly, explain why and suggest a \
+fix (like an earlier time) or an alternative. Places in memory may be missing from the \
+map search, so look them up by name if you want to recommend them.
+- When the owner tells you how an outing went, save it with save_outing. Ask for a \
+star rating (1-5) if they didn't give one.
 
 Answer with: a top pick, one or two backups, and the best time to go. Keep it short. \
 Don't list the safety warnings yourself: the app adds them automatically."""
@@ -80,8 +101,30 @@ def ask_claude(messages: list):
     )
 
 
+def confirm_and_save(outing: dict) -> tuple[str, bool]:
+    """Human-in-the-loop: show the pending memory and save only if you approve.
+
+    Reading memory is harmless, but a wrong memory would affect every future
+    recommendation, so writes need a yes from you.
+    """
+    print("\n  Save this to memory?")
+    print(memory.format_for_confirmation(outing))
+    answer = input("  (y/n): ").strip().lower()
+    if answer in ("y", "yes"):
+        memory.save_outing(outing)
+        print("  [memory] saved\n")
+        return "Saved to memory.", False
+    print("  [memory] not saved\n")
+    return ("The owner chose NOT to save this. Ask what they'd like to change, "
+            "or leave it unsaved."), False
+
+
 def run_one_tool(name: str, tool_input: dict, approved: dict) -> tuple[str, bool]:
-    """Run a tool. Safety checks go to guardrails.py; everything else to tools.py."""
+    """Send each tool request to the right place."""
+    if name == "recall_outings":
+        return json.dumps(memory.recall_outings(tool_input.get("place_name", ""))), False
+    if name == "save_outing":
+        return confirm_and_save(tool_input)
     if name != "submit_plan":
         return run_tool(name, tool_input)
 
@@ -111,6 +154,7 @@ def add_safety_notes(answer: str, approved: dict) -> str:
 def run_agent_turn(messages: list) -> str:
     """Run the agent loop for one user question. Returns the final answer."""
     approved = {}  # place name -> warnings, for plans that passed this turn
+    planning = False  # did Claude look up places or weather this turn?
 
     for _ in range(MAX_TOOL_ROUNDS):
         response = ask_claude(messages)
@@ -125,6 +169,8 @@ def run_agent_turn(messages: list) -> str:
         if response.stop_reason != "tool_use":
             # No more tools needed - this is the final answer.
             answer = "".join(b.text for b in response.content if b.type == "text")
+            if not planning:
+                return answer  # e.g. just saving an outing: no plan to check
             return add_safety_notes(answer, approved)
 
         # Claude asked for one or more tools. Run each one.
@@ -133,6 +179,7 @@ def run_agent_turn(messages: list) -> str:
             if block.type != "tool_use":
                 continue
             print(f"  [tool] {block.name}({block.input})")
+            planning = planning or block.name in PLANNING_TOOLS
             result, is_error = run_one_tool(block.name, block.input, approved)
             tool_results.append({
                 "type": "tool_result",

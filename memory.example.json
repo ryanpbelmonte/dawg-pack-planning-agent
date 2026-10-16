@@ -1,0 +1,26 @@
+{
+  "outings": [
+    {
+      "place_name": "Cedar River Dog Park",
+      "date": "2026-10-11",
+      "time": "09:00",
+      "rating": 5,
+      "crowd_level": "moderate",
+      "thea": "Relaxed, played a little",
+      "nico": "Played with everyone",
+      "note": "Great morning. Shady and not too busy before 10am.",
+      "saved_at": "2026-10-11T11:30:00"
+    },
+    {
+      "place_name": "Douglas Fir Trail",
+      "date": "2026-10-17",
+      "time": "13:00",
+      "rating": 2,
+      "crowd_level": "busy",
+      "thea": "Reactive twice with off-leash dogs",
+      "nico": "Fine",
+      "note": "Too crowded in the afternoon. Try before 9am if we go back.",
+      "saved_at": "2026-10-17T16:05:00"
+    }
+  ]
+}

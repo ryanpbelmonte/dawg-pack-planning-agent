@@ -18,6 +18,7 @@ from pathlib import Path
 
 import requests
 
+import memory
 from tools import get_weather_forecast
 
 PROJECT_DIR = Path(__file__).parent
@@ -47,11 +48,13 @@ def _hours_in_window(hourly: list, start_time: str, duration_hours: float) -> li
     return chosen
 
 
-def evaluate_plan(plan: dict, hourly: list | None, profile: dict) -> dict:
+def evaluate_plan(plan: dict, hourly: list | None, profile: dict,
+                  outings: list | None = None) -> dict:
     """Check one plan against the rules.
 
     `hourly` is the forecast for the plan's date (from get_weather_forecast),
-    or None if the weather couldn't be checked.
+    or None if the weather couldn't be checked. `outings` is the saved
+    outing history from memory.py (Stage 3), or None to skip that rule.
 
     Returns {"verdict": ..., "problems": [...], "warnings": [...]}.
     Problems block the plan. Warnings must be shown to the user.
@@ -157,7 +160,21 @@ def evaluate_plan(plan: dict, hourly: list | None, profile: dict) -> dict:
                 "have a turnaround plan."
             )
 
-    # --- Rule 5: always shown ------------------------------------------------
+    # --- Rule 5: past bad experiences here (Stage 3 memory) ------------------
+    if outings:
+        bad_visits = [
+            o for o in outings
+            if memory.same_place(o["place_name"], plan["place_name"]) and o["rating"] <= 2
+        ]
+        if bad_visits:
+            worst = max(bad_visits, key=memory.date_key)  # most recent bad visit
+            when = "" if worst["date"] == "unknown" else f" ({worst['date']})"
+            warnings.append(
+                f"Last bad visit here{when} was rated {worst['rating']}/5: "
+                f"\"{worst['note']}\" Consider a different time or place."
+            )
+
+    # --- Rule 6: always shown ------------------------------------------------
     warnings.append(
         "Some parks limit how many dogs one person can bring. Confirm that "
         f"two dogs ({names}) are allowed."
@@ -189,7 +206,7 @@ def check_plan(**plan) -> dict:
     except requests.RequestException:
         hourly = None  # no weather means the plan can't pass the heat check
 
-    result = evaluate_plan(plan, hourly, profile)
+    result = evaluate_plan(plan, hourly, profile, memory.load_outings())
     _log(plan, result)
     return result
 

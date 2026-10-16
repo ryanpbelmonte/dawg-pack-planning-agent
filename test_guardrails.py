@@ -67,10 +67,30 @@ CASES = [
 ]
 
 
+def outing(place, rating, note="", day="2026-10-10"):
+    """A made-up saved outing, for the memory rule (Stage 3)."""
+    return {"place_name": place, "date": day, "rating": rating, "note": note}
+
+
+HISTORY = [
+    outing("Test Trail", 2, "Thea was reactive, too crowded"),
+    outing("Happy Park", 5, "Perfect morning"),
+]
+
+# Same shape as CASES, plus the outing history to check against.
+MEMORY_CASES = [
+    ("Bad past visit: warned",           plan(),                              fake_weather(62),  "CAUTION", "Thea was reactive", HISTORY),
+    ("Name match is loose",              plan(place_name="test trail loop"),  fake_weather(62),  "CAUTION", "rated 2/5",         HISTORY),
+    ("Good past visit: no warning",      plan(place_name="Happy Park"),       fake_weather(62),  "SAFE",    None,                HISTORY),
+    ("No history: no warning",           plan(),                              fake_weather(62),  "SAFE",    None,                []),
+]
+
+
 def main():
     passed = 0
-    for description, test_plan, weather, expected, must_mention in CASES:
-        result = evaluate_plan(test_plan, weather, PROFILE)
+    all_cases = [case + (None,) for case in CASES] + MEMORY_CASES
+    for description, test_plan, weather, expected, must_mention, history in all_cases:
+        result = evaluate_plan(test_plan, weather, PROFILE, history)
         text = " ".join(result["problems"] + result["warnings"])
         ok = result["verdict"] == expected and (must_mention is None or must_mention in text)
         passed += ok
@@ -78,7 +98,7 @@ def main():
         print(f"{mark}  {description:<36} expected {expected:<8} got {result['verdict']}")
         if not ok:
             print(f"      problems: {result['problems']}\n      warnings: {result['warnings']}")
-    print(f"\n{passed}/{len(CASES)} passed")
+    print(f"\n{passed}/{len(all_cases)} passed")
 
 
 if __name__ == "__main__":
