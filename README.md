@@ -1,6 +1,6 @@
-# Pack Planner
+# Dawg Pack Planner
 
-An AI agent that plans dog-friendly outings for Thea and Nico, two German Shepherd / Husky mixes. It looks up places, checks the weather, finds trails and parks that allow dogs, and recommends where and when to go. Safety rules are enforced by code, not left to the AI.
+An AI agent that plans dog-friendly outings for Thea and Nico, two German Shepherd / Husky mixes. (The name is a nod to my two Husky mixes and to the UW Huskies' "Dawg Pack.") It looks up places, checks the weather, finds trails and parks that allow dogs, and recommends where and when to go. Safety rules are enforced by code, not left to the AI.
 
 - **Stage 1:** the basic agent loop. Claude plus three tools, with no frameworks.
 - **Stage 2:** guardrails. Every plan is checked by code against heat, distance and dog-rule limits before you see it.
@@ -74,7 +74,7 @@ All commands are for **PowerShell**.
 
 ### Step 1: Go to the project folder
 ```powershell
-cd C:\Users\ryanb\Software_Projects\pack-planner
+cd C:\Users\ryanb\Software_Projects\dawg-pack-planning-agent
 ```
 
 ### Step 2: Create a Python environment and install packages

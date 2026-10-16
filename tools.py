@@ -22,7 +22,7 @@ import time
 import requests
 
 # Identify ourselves politely to the free APIs.
-HEADERS = {"User-Agent": "PackPlanner/0.1 (learning project)"}
+HEADERS = {"User-Agent": "DawgPackPlanner/0.1 (learning project)"}
 
 # Public OpenStreetMap search servers, tried in order.
 OVERPASS_SERVERS = [

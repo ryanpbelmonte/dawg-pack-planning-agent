@@ -1,5 +1,5 @@
 """
-Pack Planner - an agent that plans dog-friendly outings.
+Dawg Pack Planner - an agent that plans dog-friendly outings.
 
 Stage 1: the agent loop.
   1. Send the conversation + the list of tools to Claude.
@@ -37,7 +37,7 @@ def build_system_prompt(profile: dict) -> str:
         for d in profile["dogs"]
     )
     dist = profile["distance_miles"]
-    return f"""You are Pack Planner. You plan outings for a person and their two dogs. \
+    return f"""You are Dawg Pack Planner. You plan outings for a person and their two dogs. \
 Today is {date.today().strftime('%A, %Y-%m-%d')}.
 
 The dogs:
@@ -149,7 +149,7 @@ def run_agent_turn(messages: list) -> str:
 
 def main():
     names = " and ".join(d["name"] for d in PROFILE["dogs"])
-    print(f"Pack Planner - where should we take {names}? (type 'quit' to exit)\n")
+    print(f"Dawg Pack Planner - where should we take {names}? (type 'quit' to exit)\n")
     messages = []  # the whole conversation, so follow-up questions work
     while True:
         question = input("You: ").strip()
@@ -168,7 +168,7 @@ def main():
             print(f"Couldn't get an answer from Claude: {e}")
             del messages[turn_start:]  # forget the half-finished turn
             continue
-        print(f"\nPack Planner: {answer}\n")
+        print(f"\nDawg Pack Planner: {answer}\n")
 
 
 if __name__ == "__main__":
