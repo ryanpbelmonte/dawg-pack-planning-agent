@@ -1,0 +1,27 @@
+{
+  "dogs": [
+    {
+      "name": "Thea",
+      "sex": "female",
+      "breed": "German Shepherd / Husky mix",
+      "notes": "Sometimes reactive to other dogs, but improving. On hikes, prefer quieter trails and times. Busy non-hike places are fine."
+    },
+    {
+      "name": "Nico",
+      "sex": "male",
+      "breed": "German Shepherd / Husky mix",
+      "notes": "Very friendly and loves other animals when he's alone or not influenced by Thea. Loves people and kids at all times."
+    }
+  ],
+  "distance_miles": {
+    "comfortable_min": 3,
+    "comfortable_max": 6
+  },
+  "heat_limits_feels_like_f": {
+    "caution": 75,
+    "unsafe": 85
+  },
+  "pavement_warning_air_temp_f": 77,
+  "rain_warning_chance_pct": 60,
+  "uv_warning_index": 7
+}
