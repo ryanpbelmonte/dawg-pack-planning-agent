@@ -1,0 +1,15 @@
+{
+  "trusted": [
+    {
+      "name": "Brewmasters Taproom",
+      "type": "brewery",
+      "city": "Renton, WA",
+      "latitude": 47.48288,
+      "longitude": -122.21707,
+      "location_is_approximate": true,
+      "dogs": "Dogs allowed inside",
+      "schedule": "Regular taproom hours. Check their website for current hours.",
+      "verified_by": "owner"
+    }
+  ]
+}

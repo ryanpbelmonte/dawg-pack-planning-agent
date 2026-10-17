@@ -10,10 +10,13 @@ If you change a rule or a limit in dogs.json, run this again to make sure
 nothing broke. (This is a first step toward the "evals" in Stage 6.)
 """
 
+from datetime import date
+
 from guardrails import evaluate_plan, load_profile
 
 PROFILE = load_profile()
 WEDNESDAY, SATURDAY = "2026-10-14", "2026-10-17"
+TODAY = date(2026, 10, 13)  # fixed, so the tests don't break as real days pass
 
 
 def fake_weather(feels_like, cloud=80, rain=0, uv=3):
@@ -29,6 +32,7 @@ def plan(**changes):
     """A normal, safe weekday-morning hike. Each test changes one thing."""
     base = {
         "place_name": "Test Trail", "place_type": "hike", "dog_rule": "leashed",
+        "source": "map", "source_url": "",
         "latitude": 47.5, "longitude": -122.2, "date": WEDNESDAY,
         "start_time": "07:30", "duration_hours": 2, "distance_miles": 4,
     }
@@ -86,11 +90,43 @@ MEMORY_CASES = [
 ]
 
 
+FOUND_LINK = "https://example.com/events/yappy-hour"
+VERIFIED = {FOUND_LINK}  # pretend search_events returned this link
+
+
+def event(**changes):
+    """A Saturday afternoon event found by web search. Each test changes one thing."""
+    return plan(place_name="Yappy Hour", place_type="event", source="web_search",
+                source_url=FOUND_LINK, dog_rule="yes", date=SATURDAY,
+                start_time="14:00", distance_miles=0) | changes
+
+
+# Stage 4 cases: (description, plan, weather, expected, must mention)
+EVENT_CASES = [
+    ("Web event with a verified link",   event(),                             fake_weather(62),  "SAFE",    None),
+    ("Link differs only by slash/case",  event(source_url="HTTPS://Example.com/events/yappy-hour/"),
+                                                                              fake_weather(62),  "SAFE",    None),
+    ("Web event, made-up link",          event(source_url="https://fake.example/win"),
+                                                                              fake_weather(62),  "UNSAFE",  "didn't come from a web search"),
+    ("Web event, no link",               event(source_url=""),                fake_weather(62),  "UNSAFE",  "need the link"),
+    ("Web event, dogs not confirmed",    event(dog_rule="unknown"),           fake_weather(62),  "CAUTION", "aren't confirmed"),
+    ("Trusted-list venue",               plan(place_name="Brewmasters Taproom", place_type="venue",
+                                              source="my_list", dog_rule="yes", distance_miles=0),
+                                                                              fake_weather(62),  "SAFE",    None),
+    ("Date already passed",              plan(date="2026-10-01"),             fake_weather(62),  "UNSAFE",  "already passed"),
+    ("Too far from home (Portland)",     plan(latitude=45.52, longitude=-122.68),
+                                                                              fake_weather(62),  "UNSAFE",  "drive limit"),
+    ("Within range (Mount Rainier)",     plan(latitude=46.79, longitude=-121.74),
+                                                                              fake_weather(62),  "SAFE",    None),
+]
+
+
 def main():
     passed = 0
-    all_cases = [case + (None,) for case in CASES] + MEMORY_CASES
+    all_cases = ([case + (None,) for case in CASES] + MEMORY_CASES
+                 + [case + (None,) for case in EVENT_CASES])
     for description, test_plan, weather, expected, must_mention, history in all_cases:
-        result = evaluate_plan(test_plan, weather, PROFILE, history)
+        result = evaluate_plan(test_plan, weather, PROFILE, history, VERIFIED, TODAY)
         text = " ".join(result["problems"] + result["warnings"])
         ok = result["verdict"] == expected and (must_mention is None or must_mention in text)
         passed += ok

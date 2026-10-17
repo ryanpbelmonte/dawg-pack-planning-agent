@@ -18,8 +18,10 @@ from pathlib import Path
 
 import requests
 
+import events
 import memory
-from tools import get_weather_forecast
+from events import normalize_url
+from tools import miles_between, get_weather_forecast
 
 PROJECT_DIR = Path(__file__).parent
 LOG_FILE = PROJECT_DIR / "guardrail_log.jsonl"
@@ -49,12 +51,15 @@ def _hours_in_window(hourly: list, start_time: str, duration_hours: float) -> li
 
 
 def evaluate_plan(plan: dict, hourly: list | None, profile: dict,
-                  outings: list | None = None) -> dict:
+                  outings: list | None = None, verified_urls: set | None = None,
+                  today: date | None = None) -> dict:
     """Check one plan against the rules.
 
     `hourly` is the forecast for the plan's date (from get_weather_forecast),
     or None if the weather couldn't be checked. `outings` is the saved
     outing history from memory.py (Stage 3), or None to skip that rule.
+    `verified_urls` are links web search really returned (Stage 4).
+    `today` can be fixed for tests; normally it's the real date.
 
     Returns {"verdict": ..., "problems": [...], "warnings": [...]}.
     Problems block the plan. Warnings must be shown to the user.
@@ -75,6 +80,33 @@ def evaluate_plan(plan: dict, hourly: list | None, profile: dict,
     limits = profile["heat_limits_feels_like_f"]
     names = " and ".join(d["name"] for d in profile["dogs"])
     is_hike = plan["place_type"] == "hike"
+    today = today or date.today()
+
+    # --- Rule 0 (Stage 4): when, where, and where the info came from ---------
+    if plan_date < today:
+        problems.append(f"{plan['date']} has already passed. Pick an upcoming date.")
+
+    home = profile["home_base"]
+    miles = miles_between(home["latitude"], home["longitude"],
+                           plan["latitude"], plan["longitude"])
+    if miles > profile["max_distance_from_home_miles"]:
+        problems.append(
+            f"{plan['place_name']} is about {miles:.0f} miles from {home['name']}, "
+            f"beyond the {profile['max_drive_minutes']}-minute drive limit "
+            f"(about {profile['max_distance_from_home_miles']} miles). Pick somewhere closer."
+        )
+
+    if plan["source"] == "web_search":
+        known = {normalize_url(u) for u in (verified_urls or set())}
+        if not plan["source_url"]:
+            problems.append("Web-sourced plans need the link where the event was found.")
+        elif normalize_url(plan["source_url"]) not in known:
+            problems.append(
+                "That link didn't come from a web search in this session. Only "
+                "recommend events with a link returned by search_events."
+            )
+        # (If the page didn't confirm dogs, dog_rule is "unknown" and Rule 1
+        # below adds the "confirm before you go" warning.)
 
     # --- Rule 1: dogs must be allowed ---------------------------------------
     rule = plan["dog_rule"].lower()
@@ -206,7 +238,8 @@ def check_plan(**plan) -> dict:
     except requests.RequestException:
         hourly = None  # no weather means the plan can't pass the heat check
 
-    result = evaluate_plan(plan, hourly, profile, memory.load_outings())
+    result = evaluate_plan(plan, hourly, profile, memory.load_outings(),
+                           events.verified_urls)
     _log(plan, result)
     return result
 
@@ -243,13 +276,26 @@ SUBMIT_PLAN_TOOL = {
             "place_name": {"type": "string"},
             "place_type": {
                 "type": "string",
-                "enum": ["hike", "dog_park", "park_walk", "event", "other"],
-                "description": "'hike' for trail outings; everything else is a non-hike.",
+                "enum": ["hike", "dog_park", "park_walk", "venue", "event", "other"],
+                "description": ("'hike' for trail outings; 'venue' for a brewery, patio "
+                                "or cafe visit; 'event' for a dated event."),
+            },
+            "source": {
+                "type": "string",
+                "enum": ["my_list", "map", "web_search"],
+                "description": ("Where this came from: the owner's trusted list, map "
+                                "data (OpenStreetMap), or search_events."),
+            },
+            "source_url": {
+                "type": "string",
+                "description": "For web_search: the event's link from search_events. Otherwise ''.",
             },
             "dog_rule": {
                 "type": "string",
-                "enum": ["yes", "leashed", "dog park", "no", "unknown"],
-                "description": "What the data says about dogs here. Use 'unknown' if not stated.",
+                "enum": ["yes", "leashed", "dog park", "patio only", "no", "unknown"],
+                "description": ("What the data says about dogs here. Use 'unknown' if not "
+                                "stated. For web events: 'yes' only if dog_policy is "
+                                "'confirmed', otherwise 'unknown'."),
             },
             "latitude": {"type": "number"},
             "longitude": {"type": "number"},
@@ -262,8 +308,9 @@ SUBMIT_PLAN_TOOL = {
             },
         },
         "required": [
-            "place_name", "place_type", "dog_rule", "latitude", "longitude",
-            "date", "start_time", "duration_hours", "distance_miles",
+            "place_name", "place_type", "source", "source_url", "dog_rule",
+            "latitude", "longitude", "date", "start_time", "duration_hours",
+            "distance_miles",
         ],
         "additionalProperties": False,
     },

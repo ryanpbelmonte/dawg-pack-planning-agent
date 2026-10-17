@@ -23,5 +23,12 @@
   },
   "pavement_warning_air_temp_f": 77,
   "rain_warning_chance_pct": 60,
-  "uv_warning_index": 7
+  "uv_warning_index": 7,
+  "home_base": {
+    "name": "Renton, WA",
+    "latitude": 47.48288,
+    "longitude": -122.21707
+  },
+  "max_drive_minutes": 90,
+  "max_distance_from_home_miles": 60
 }
