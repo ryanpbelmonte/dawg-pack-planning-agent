@@ -1,0 +1,43 @@
+# Stage 5: run the weekly report every Monday at 7 AM Pacific.
+#
+# GitHub's schedule only uses UTC, which doesn't follow daylight saving, so
+# this runs at both 14:00 and 15:00 UTC. weekly_report.py continues only for
+# the one that is 7 AM Pacific that week.
+#
+# This repo is public, so these run logs are public too. weekly_report.py
+# never prints the plan; it only goes out by email.
+
+name: Weekly Pack Plan
+
+on:
+  schedule:
+    - cron: "0 14 * * 1"  # 7 AM Pacific Daylight Time
+    - cron: "0 15 * * 1"  # 7 AM Pacific Standard Time
+  workflow_dispatch:      # adds a "Run workflow" button for testing
+
+permissions:
+  contents: read          # it only needs to read the code
+
+jobs:
+  send-plan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15   # cost and safety limit: stop a stuck run
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install packages
+        run: pip install -r requirements.txt
+
+      - name: Plan the week and email it
+        env:
+          # Secrets are stored encrypted in GitHub and hidden in logs.
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          PACK_PLAN_EMAIL_FROM: ${{ secrets.PACK_PLAN_EMAIL_FROM }}
+          PACK_PLAN_EMAIL_PASSWORD: ${{ secrets.PACK_PLAN_EMAIL_PASSWORD }}
+          PACK_PLAN_EMAIL_TO: ${{ secrets.PACK_PLAN_EMAIL_TO }}
+          SCHEDULE_CRON: ${{ github.event.schedule }}
+        run: python weekly_report.py

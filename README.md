@@ -6,6 +6,7 @@ An AI agent that plans dog-friendly outings for Thea and Nico, two German Shephe
 - **Stage 2:** guardrails. Every plan is checked by code against heat, distance and dog-rule limits before you see it.
 - **Stage 3:** long-term memory. The agent remembers past outings, star ratings and how Thea and Nico did, and asks before saving anything.
 - **Stage 4:** events. Breweries, patios, festivals, markets and training classes from three sources with different trust levels, with web content handled as untrusted input.
+- **Stage 5:** deployment. Every Monday at 7 AM Pacific, GitHub Actions runs the agent unattended and emails the week's plan privately.
 
 ---
 
@@ -51,6 +52,8 @@ You ask a question
 | `test_guardrails.py` | 35 tests for the safety rules, using made-up weather, history and events. Free and offline. |
 | `test_memory.py` | 11 tests for saving and recalling outings, using a temporary file. Free and offline. |
 | `test_events.py` | 13 tests for the code checks on web events and the trusted list, including a simulated prompt-injection attack and a location typo. Free and offline. |
+| `weekly_report.py` | The weekly report: runs the agent unattended and emails the plan. |
+| `.github/workflows/weekly-pack-plan.yml` | The schedule: tells GitHub Actions to run the weekly report every Monday at 7 AM Pacific. |
 | `test_tools.py` | Runs the lookup tools by themselves, with no AI and no cost. |
 | `guardrail_log.jsonl` | Created automatically. One line per safety check: what was checked and the verdict. |
 
@@ -165,6 +168,57 @@ Web search has a small per-search fee, so each `search_events` call runs at most
 
 ---
 
+## Weekly plan by email (Stage 5)
+
+Every **Monday at 7 AM Pacific**, GitHub Actions starts a computer in the cloud, runs the agent in **report mode** and emails "This Week's Pack Plan" (Monday through Sunday). It runs even when the laptop is off.
+
+```
+Monday 7 AM ──▶ GitHub Actions ──▶ weekly_report.py ──▶ agent (report mode) ──▶ email
+                 (schedule)        (Secrets: API key,      - no questions        (private)
+                                    email login)            - no memory writes
+                                                            - quiet logs
+```
+
+### Running with nobody watching
+| In a conversation | In the weekly report | Why |
+|---|---|---|
+| Can ask follow-up questions | Makes reasonable choices instead | No one is there to answer |
+| `save_outing` asks you `(y/n)` | `save_outing` is turned off | Memory writes need a human's OK (Stage 3) |
+| Shows `[tool]` / `[guardrail]` lines | Shows only "emailed" or "failed" | The repo is public, so its run logs are public |
+| Uses your `memory.json` | Runs without outing history | `memory.json` stays private on the laptop |
+
+The safety rules are the same in both: every suggestion still goes through `submit_plan`.
+
+### Privacy in a public repo
+- **The plan is emailed, never printed.** Run logs on a public repo are visible to anyone.
+- **Secrets live in GitHub Secrets,** never in code: the API key, email login and both email addresses. GitHub hides them, even in logs.
+- **Errors log only their type** (for example `SMTPAuthenticationError`), not their details, which could contain parts of the plan.
+- **Commits use GitHub's private "noreply" email address,** so personal email addresses don't appear in the project history.
+
+### Scheduling details
+- GitHub's schedule only uses UTC, which doesn't follow daylight saving. The workflow runs at 14:00 and 15:00 UTC on Mondays, and `weekly_report.py` continues only for the one that's 7 AM Pacific that week.
+- GitHub can start scheduled runs a few minutes late when it's busy.
+- **Limits:** each run stops after 15 minutes, uses Claude Haiku, and has the same caps on tool rounds and web searches as a conversation. A run costs a few cents.
+- **If a run fails,** GitHub emails the repo owner, and the run's log shows the type of error.
+
+### One-time setup (done by the owner, in GitHub's website)
+1. **Create a Gmail app password** for the sending address: Google Account → **Security** → turn on **2-Step Verification** → **App passwords** → create one named "Pack Planner". (It's a separate password just for this, and can be deleted any time.)
+2. In the GitHub repo, go to **Settings → Secrets and variables → Actions → New repository secret**, and add these four:
+   | Name | Value |
+   |---|---|
+   | `ANTHROPIC_API_KEY` | Your Claude API key |
+   | `PACK_PLAN_EMAIL_FROM` | The Gmail address that sends the plan |
+   | `PACK_PLAN_EMAIL_PASSWORD` | The app password from step 1 |
+   | `PACK_PLAN_EMAIL_TO` | Where to send the plan |
+3. **Test it now:** go to the repo's **Actions** tab → **Weekly Pack Plan** → **Run workflow**. Check the email within a few minutes.
+
+To preview the plan on your own computer without emailing it:
+```powershell
+C:\Users\ryanb\.venvs\pack-planner\Scripts\python weekly_report.py --print
+```
+
+---
+
 ## Setup (do these in order)
 
 All commands are for **PowerShell**.
@@ -268,6 +322,8 @@ Write down what happens in each one; those notes become your interview answers.
 - **"90-minute drive" is approximated** as 60 miles straight-line. Real drive times need a routing service, and traffic varies.
 - **Web links can be listing pages.** The link check proves a link came from the search, not that it's the event's own page. In testing, one event's link was an Eventbrite search-results page.
 - **Web results vary between runs,** and events can be cancelled or changed after they're found. The agent says "check the link before you go" for this reason.
+- **The weekly report doesn't know past outings.** `memory.json` is private and stays on the laptop, so the cloud run can't use ratings or history. A private storage option would fix this.
+- **GitHub pauses schedules on quiet repos.** In public repos, scheduled workflows are turned off after 60 days without any repository activity. GitHub emails a warning first; re-enabling it in the Actions tab restarts it.
 - **Trusted-list locations can be approximate.** Brewmasters Taproom uses Renton's city center until an exact location is added.
 
 ## Roadmap
@@ -275,5 +331,5 @@ Write down what happens in each one; those notes become your interview answers.
 - ~~**Stage 2:** Guardrails.~~ Done
 - ~~**Stage 3:** Memory.~~ Done
 - ~~**Stage 4:** Events.~~ Done
-- **Stage 5:** Weekly scheduled plan, deployed to the cloud.
+- ~~**Stage 5:** Weekly scheduled plan, deployed to the cloud.~~ Done
 - **Stage 6:** Evaluations. Test cases that measure how often the whole agent is right.

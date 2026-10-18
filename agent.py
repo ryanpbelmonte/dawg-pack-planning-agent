@@ -56,6 +56,17 @@ PLANNING_TOOLS = {"find_dog_friendly_places", "find_dog_friendly_venues",
 
 searches_this_question = 0  # reset at the start of each question
 
+# The [tool], [web] and [guardrail] lines show place names and plans. That's
+# useful on your own screen, but the weekly report (Stage 5) runs where logs
+# are public, so it turns them off.
+SHOW_TOOL_CALLS = True
+
+
+def trace(message: str) -> None:
+    """Print a progress line, unless SHOW_TOOL_CALLS is off."""
+    if SHOW_TOOL_CALLS:
+        print(message)
+
 
 def build_system_prompt(profile: dict) -> str:
     """The agent's job description, filled in from dogs.json."""
@@ -166,14 +177,14 @@ def run_one_tool(name: str, tool_input: dict, approved: dict) -> tuple[str, bool
             result = events.search_events(tool_input["request"], client, MODEL)
         except anthropic.APIError as e:
             return f"The event search failed ({e}). Use the other sources instead.", True
-        print(f"  [web] {len(result['events'])} events kept, "
+        trace(f"  [web] {len(result['events'])} events kept, "
               f"{len(result.get('dropped', []))} dropped by code checks")
         return json.dumps(result), False
     if name != "submit_plan":
         return run_tool(name, tool_input)
 
     result = guardrails.check_plan(**tool_input)
-    print(f"  [guardrail] {tool_input['place_name']}: {result['verdict']}")
+    trace(f"  [guardrail] {tool_input['place_name']}: {result['verdict']}")
     if result["verdict"] != "UNSAFE":
         # Remember approved plans so we can attach their warnings at the end.
         approved[tool_input["place_name"]] = result["warnings"]
@@ -224,7 +235,7 @@ def run_agent_turn(messages: list) -> str:
         for block in response.content:
             if block.type != "tool_use":
                 continue
-            print(f"  [tool] {block.name}({block.input})")
+            trace(f"  [tool] {block.name}({block.input})")
             planning = planning or block.name in PLANNING_TOOLS
             result, is_error = run_one_tool(block.name, block.input, approved)
             tool_results.append({
