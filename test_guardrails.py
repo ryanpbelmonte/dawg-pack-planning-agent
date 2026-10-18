@@ -90,6 +90,11 @@ MEMORY_CASES = [
 ]
 
 
+TRUSTED = [  # a made-up trusted list, as events.list_my_events() returns it
+    {"name": "Brewmasters Taproom", "latitude": 47.5, "longitude": -122.2},
+    {"name": "Typo Cafe", "latitude": 60.48, "longitude": -149.2,
+     "data_problem": "its location is about 1,400 miles from Renton, WA"},
+]
 FOUND_LINK = "https://example.com/events/yappy-hour"
 VERIFIED = {FOUND_LINK}  # pretend search_events returned this link
 
@@ -113,6 +118,16 @@ EVENT_CASES = [
     ("Trusted-list venue",               plan(place_name="Brewmasters Taproom", place_type="venue",
                                               source="my_list", dog_rule="yes", distance_miles=0),
                                                                               fake_weather(62),  "SAFE",    None),
+    ("Trusted list: name not on the list", plan(place_name="Made Up Pub", place_type="venue",
+                                              source="my_list", dog_rule="yes", distance_miles=0),
+                                                                              fake_weather(62),  "UNSAFE",  "isn't on the owner's trusted list"),
+    ("Trusted list: entry has a typo",   plan(place_name="Typo Cafe", place_type="venue",
+                                              source="my_list", dog_rule="yes", distance_miles=0),
+                                                                              fake_weather(62),  "UNSAFE",  "data problem"),
+    ("Trusted list: Claude moved it",    plan(place_name="Brewmasters Taproom", place_type="venue",
+                                              source="my_list", dog_rule="yes", distance_miles=0,
+                                              latitude=47.7),
+                                                                              fake_weather(62),  "UNSAFE",  "doesn't match"),
     ("Date already passed",              plan(date="2026-10-01"),             fake_weather(62),  "UNSAFE",  "already passed"),
     ("Too far from home (Portland)",     plan(latitude=45.52, longitude=-122.68),
                                                                               fake_weather(62),  "UNSAFE",  "drive limit"),
@@ -126,7 +141,8 @@ def main():
     all_cases = ([case + (None,) for case in CASES] + MEMORY_CASES
                  + [case + (None,) for case in EVENT_CASES])
     for description, test_plan, weather, expected, must_mention, history in all_cases:
-        result = evaluate_plan(test_plan, weather, PROFILE, history, VERIFIED, TODAY)
+        result = evaluate_plan(test_plan, weather, PROFILE, history, VERIFIED, TODAY,
+                               trusted=TRUSTED)
         text = " ".join(result["problems"] + result["warnings"])
         ok = result["verdict"] == expected and (must_mention is None or must_mention in text)
         passed += ok

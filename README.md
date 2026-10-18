@@ -48,9 +48,9 @@ You ask a question
 | `memory.example.json` | Made-up outings showing the format, for anyone viewing the project on GitHub. |
 | `events.py` | Events: the trusted list (`list_my_events`) and the quarantined web search (`search_events`). |
 | `events.json` | **Your trusted list:** venues and events you've verified yourself, like Brewmasters Taproom. |
-| `test_guardrails.py` | 30 tests for the safety rules, using made-up weather, history and events. Free and offline. |
+| `test_guardrails.py` | 33 tests for the safety rules, using made-up weather, history and events. Free and offline. |
 | `test_memory.py` | 11 tests for saving and recalling outings, using a temporary file. Free and offline. |
-| `test_events.py` | 10 tests for the code checks on web events, including a simulated prompt-injection attack. Free and offline. |
+| `test_events.py` | 13 tests for the code checks on web events and the trusted list, including a simulated prompt-injection attack and a location typo. Free and offline. |
 | `test_tools.py` | Runs the lookup tools by themselves, with no AI and no cost. |
 | `guardrail_log.jsonl` | Created automatically. One line per safety check: what was checked and the verdict. |
 
@@ -72,6 +72,7 @@ You ask a question
 | Date already passed (Stage 4) | Any plan dated before today | |
 | Too far from home (Stage 4) | Over ~60 miles straight-line from Renton (stand-in for a 90-minute drive) | |
 | Web-sourced event (Stage 4) | No link, or a link the search didn't actually return | Dogs not clearly confirmed |
+| "From my list" plan (Stage 4) | Not on the trusted list, the entry has a data problem, or the plan's location doesn't match the list | |
 | Always shown | | Confirm two dogs are allowed |
 
 **Why code instead of the prompt?** A prompt rule is like telling a new employee, "Don't give refunds over $50"; they'll usually remember. A code rule is like a register that won't process the refund. For safety, you want the register.
@@ -144,6 +145,15 @@ Safety check: blocks web plans whose link didn't come from the search
 2. **Instructions:** both the reader and the main agent are told that web text is information, not instructions.
 3. **Code checks:** links are matched against what the search actually returned (so a made-up or injected link can't get through), dates are validated, and text is kept short.
 4. **Guardrails:** the final safety check blocks web plans without a verified link, so this doesn't depend on Claude cooperating.
+
+### Trusted doesn't mean error-free
+During testing, a typo in `events.json` put a Renton restaurant in Alaska. Claude noticed and **quietly used Renton's location instead**, so the safety check never saw the bad data, and the typo stayed in the file. Helpful, but it hid the problem. Now:
+
+1. **Data is checked where it enters.** `list_my_events` flags any entry whose location is missing or beyond the drive limit, and tells Claude to report it, not fix it.
+2. **The agent is told to report, not fix,** bad data from any tool.
+3. **The safety check enforces it.** A "from my list" plan must match a real entry, use that entry's location (within 2 miles), and have no data problem. If Claude changed or invented trusted data, the plan is blocked.
+
+Result: with the same typo, the agent now says *"its saved location is about 1,400 miles away, which looks like a typo. Please fix it in events.json"*, and doesn't recommend the place until it's fixed.
 
 ### Cost control
 Web search has a small per-search fee, so each `search_events` call runs at most **3 searches**, and the agent can call it at most **2 times per question**.

@@ -50,9 +50,12 @@ def _hours_in_window(hourly: list, start_time: str, duration_hours: float) -> li
     return chosen
 
 
+TRUSTED_LOCATION_TOLERANCE_MILES = 2  # trusted locations can be approximate
+
+
 def evaluate_plan(plan: dict, hourly: list | None, profile: dict,
                   outings: list | None = None, verified_urls: set | None = None,
-                  today: date | None = None) -> dict:
+                  today: date | None = None, trusted: list | None = None) -> dict:
     """Check one plan against the rules.
 
     `hourly` is the forecast for the plan's date (from get_weather_forecast),
@@ -60,6 +63,7 @@ def evaluate_plan(plan: dict, hourly: list | None, profile: dict,
     outing history from memory.py (Stage 3), or None to skip that rule.
     `verified_urls` are links web search really returned (Stage 4).
     `today` can be fixed for tests; normally it's the real date.
+    `trusted` is the owner's trusted list from events.list_my_events().
 
     Returns {"verdict": ..., "problems": [...], "warnings": [...]}.
     Problems block the plan. Warnings must be shown to the user.
@@ -107,6 +111,27 @@ def evaluate_plan(plan: dict, hourly: list | None, profile: dict,
             )
         # (If the page didn't confirm dogs, dog_rule is "unknown" and Rule 1
         # below adds the "confirm before you go" warning.)
+
+    # A plan that says "from my list" must match the list exactly, so Claude
+    # can't quietly fix (or invent) trusted data on the way to this check.
+    if plan["source"] == "my_list" and trusted is not None:
+        entry = next((e for e in trusted
+                      if memory.same_place(e["name"], plan["place_name"])), None)
+        if entry is None:
+            problems.append(f"{plan['place_name']} isn't on the owner's trusted list.")
+        elif entry.get("data_problem"):
+            problems.append(
+                f"The trusted list entry for {entry['name']} has a data problem: "
+                f"{entry['data_problem']}. Tell the owner to fix events.json; "
+                "don't correct it yourself."
+            )
+        elif miles_between(entry["latitude"], entry["longitude"],
+                           plan["latitude"], plan["longitude"]) > TRUSTED_LOCATION_TOLERANCE_MILES:
+            problems.append(
+                f"The location in this plan doesn't match the trusted list entry "
+                f"for {entry['name']}. Use the location from the list, and if it "
+                "looks wrong, tell the owner instead of changing it."
+            )
 
     # --- Rule 1: dogs must be allowed ---------------------------------------
     rule = plan["dog_rule"].lower()
@@ -239,7 +264,7 @@ def check_plan(**plan) -> dict:
         hourly = None  # no weather means the plan can't pass the heat check
 
     result = evaluate_plan(plan, hourly, profile, memory.load_outings(),
-                           events.verified_urls)
+                           events.verified_urls, trusted=events.list_my_events()["trusted"])
     _log(plan, result)
     return result
 

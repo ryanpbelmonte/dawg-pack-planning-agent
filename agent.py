@@ -80,6 +80,9 @@ check the weather, then submit each option with submit_plan before recommending 
 - For hikes, prefer quieter trails and quieter times if a dog above is reactive. \
 For dog parks, walks in town and events, crowds are fine.
 - Map data is often incomplete. Don't claim a place allows dogs unless the data says so.
+- If data from a tool looks wrong (for example, a location far from where it should \
+be), tell the owner what looks wrong and where to fix it. Don't correct it yourself, \
+and don't recommend that place until it's fixed.
 
 Memory:
 - Before recommending places, call recall_outings to see where they've been and how \

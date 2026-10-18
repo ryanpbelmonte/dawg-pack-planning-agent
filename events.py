@@ -24,6 +24,8 @@ from urllib.parse import urlsplit
 
 import anthropic
 
+from tools import miles_between
+
 PROJECT_DIR = Path(__file__).parent
 EVENTS_FILE = PROJECT_DIR / "events.json"
 
@@ -39,12 +41,46 @@ verified_urls: set = set()
 # Source 1: your trusted list
 # ---------------------------------------------------------------------------
 
+def trusted_entry_problem(entry: dict, home: dict, max_miles: float) -> str | None:
+    """Check one trusted-list entry for data mistakes. Returns the problem, or None.
+
+    Trusted doesn't mean error-free: a typo in a location (like 60.48 instead
+    of 47.48) would put a Renton restaurant in Alaska. Catching it here, where
+    the data enters the system, means nothing downstream has to guess.
+    """
+    lat, lon = entry.get("latitude"), entry.get("longitude")
+    if not isinstance(lat, (int, float)) or not isinstance(lon, (int, float)):
+        return "its location (latitude/longitude) is missing or not a number"
+    miles = miles_between(home["latitude"], home["longitude"], lat, lon)
+    if miles > max_miles:
+        return (f"its location is about {miles:,.0f} miles from {home['name']}, "
+                f"which looks like a typo")
+    return None
+
+
 def list_my_events() -> dict:
-    """Return the venues and events you've personally verified."""
+    """Return the venues and events you've personally verified, with any
+    data problems flagged (not fixed)."""
     if not EVENTS_FILE.exists():
         return {"trusted": []}
     with open(EVENTS_FILE, encoding="utf-8") as f:
-        return json.load(f)
+        data = json.load(f)
+    with open(PROJECT_DIR / "dogs.json", encoding="utf-8") as f:
+        profile = json.load(f)
+
+    problems = []
+    for entry in data["trusted"]:
+        problem = trusted_entry_problem(entry, profile["home_base"],
+                                        profile["max_distance_from_home_miles"])
+        if problem:
+            entry["data_problem"] = problem
+            problems.append(f"{entry['name']}: {problem}. Fix it in events.json.")
+    if problems:
+        data["data_problems"] = problems
+        data["instructions"] = ("Tell the owner about these data problems. Don't "
+                                "correct them yourself, and don't recommend these "
+                                "places until the owner fixes events.json.")
+    return data
 
 
 # ---------------------------------------------------------------------------

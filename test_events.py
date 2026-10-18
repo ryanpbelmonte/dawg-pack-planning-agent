@@ -9,9 +9,10 @@ Run it with:   C:\\Users\\ryanb\\.venvs\\pack-planner\\Scripts\\python test_even
 
 from datetime import date
 
-from events import MAX_TEXT_LENGTH, list_my_events, validate_events
+from events import MAX_TEXT_LENGTH, list_my_events, trusted_entry_problem, validate_events
 
 TODAY = date(2026, 10, 13)
+HOME = {"name": "Renton, WA", "latitude": 47.48288, "longitude": -122.21707}
 SEARCH_RESULTS = {"https://rentondowntown.com/events", "https://brewery.example/yappy-hour"}
 
 
@@ -65,6 +66,17 @@ def main():
     trusted = list_my_events()["trusted"]
     check("Trusted list includes Brewmasters Taproom",
           any(t["name"] == "Brewmasters Taproom" for t in trusted))
+
+    # Checking trusted-list data when it's loaded
+    good = {"name": "Whistle Stop", "latitude": 47.48288, "longitude": -122.21707}
+    check("Correct trusted location: no problem", trusted_entry_problem(good, HOME, 60) is None)
+
+    alaska = good | {"latitude": 60.48288, "longitude": -149.21707}
+    problem = trusted_entry_problem(alaska, HOME, 60)
+    check("Alaska typo is flagged as a likely typo", problem is not None and "typo" in problem)
+
+    missing = {"name": "No Location Cafe"}
+    check("Missing location is flagged", "missing" in (trusted_entry_problem(missing, HOME, 60) or ""))
 
     print(f"\n{sum(results)}/{len(results)} passed")
 
