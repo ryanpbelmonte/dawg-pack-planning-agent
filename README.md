@@ -48,7 +48,7 @@ You ask a question
 | `memory.example.json` | Made-up outings showing the format, for anyone viewing the project on GitHub. |
 | `events.py` | Events: the trusted list (`list_my_events`) and the quarantined web search (`search_events`). |
 | `events.json` | **Your trusted list:** venues and events you've verified yourself, like Brewmasters Taproom. |
-| `test_guardrails.py` | 33 tests for the safety rules, using made-up weather, history and events. Free and offline. |
+| `test_guardrails.py` | 35 tests for the safety rules, using made-up weather, history and events. Free and offline. |
 | `test_memory.py` | 11 tests for saving and recalling outings, using a temporary file. Free and offline. |
 | `test_events.py` | 13 tests for the code checks on web events and the trusted list, including a simulated prompt-injection attack and a location typo. Free and offline. |
 | `test_tools.py` | Runs the lookup tools by themselves, with no AI and no cost. |
@@ -69,7 +69,7 @@ You ask a question
 | Strong sun | | UV index above 7 |
 | Weather can't be checked | Date too far out, or before 6am / after 9pm | |
 | A past visit here was rated 1–2 stars (Stage 3) | | Shows the date and note from that visit |
-| Date already passed (Stage 4) | Any plan dated before today | |
+| Date or time already passed (Stage 4) | Any plan dated before today, or for today with a start time that has passed | |
 | Too far from home (Stage 4) | Over ~60 miles straight-line from Renton (stand-in for a 90-minute drive) | |
 | Web-sourced event (Stage 4) | No link, or a link the search didn't actually return | Dogs not clearly confirmed |
 | "From my list" plan (Stage 4) | Not on the trusted list, the entry has a data problem, or the plan's location doesn't match the list | |

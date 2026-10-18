@@ -55,7 +55,8 @@ TRUSTED_LOCATION_TOLERANCE_MILES = 2  # trusted locations can be approximate
 
 def evaluate_plan(plan: dict, hourly: list | None, profile: dict,
                   outings: list | None = None, verified_urls: set | None = None,
-                  today: date | None = None, trusted: list | None = None) -> dict:
+                  today: date | None = None, trusted: list | None = None,
+                  now: datetime | None = None) -> dict:
     """Check one plan against the rules.
 
     `hourly` is the forecast for the plan's date (from get_weather_forecast),
@@ -64,6 +65,7 @@ def evaluate_plan(plan: dict, hourly: list | None, profile: dict,
     `verified_urls` are links web search really returned (Stage 4).
     `today` can be fixed for tests; normally it's the real date.
     `trusted` is the owner's trusted list from events.list_my_events().
+    `now` can be fixed for tests; normally it's the real date and time.
 
     Returns {"verdict": ..., "problems": [...], "warnings": [...]}.
     Problems block the plan. Warnings must be shown to the user.
@@ -84,11 +86,20 @@ def evaluate_plan(plan: dict, hourly: list | None, profile: dict,
     limits = profile["heat_limits_feels_like_f"]
     names = " and ".join(d["name"] for d in profile["dogs"])
     is_hike = plan["place_type"] == "hike"
-    today = today or date.today()
+    now = now or datetime.now()
+    today = today or now.date()
 
     # --- Rule 0 (Stage 4): when, where, and where the info came from ---------
     if plan_date < today:
         problems.append(f"{plan['date']} has already passed. Pick an upcoming date.")
+    elif plan_date == now.date():
+        # Same day: comparing dates isn't enough, the start time matters too.
+        start = datetime.strptime(plan["start_time"], "%H:%M").time()
+        if start < now.time():
+            problems.append(
+                f"{plan['start_time']} today has already passed (it's now "
+                f"{now.strftime('%H:%M')}). Pick a later time or another day."
+            )
 
     home = profile["home_base"]
     miles = miles_between(home["latitude"], home["longitude"],

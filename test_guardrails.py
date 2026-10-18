@@ -10,13 +10,15 @@ If you change a rule or a limit in dogs.json, run this again to make sure
 nothing broke. (This is a first step toward the "evals" in Stage 6.)
 """
 
-from datetime import date
+from datetime import date, datetime
 
 from guardrails import evaluate_plan, load_profile
 
 PROFILE = load_profile()
 WEDNESDAY, SATURDAY = "2026-10-14", "2026-10-17"
-TODAY = date(2026, 10, 13)  # fixed, so the tests don't break as real days pass
+# Fixed date and time, so the tests give the same result whenever they run.
+TODAY = date(2026, 10, 13)
+NOW = datetime(2026, 10, 13, 8, 0)  # 8:00 AM on TODAY
 
 
 def fake_weather(feels_like, cloud=80, rain=0, uv=3):
@@ -128,6 +130,10 @@ EVENT_CASES = [
                                               source="my_list", dog_rule="yes", distance_miles=0,
                                               latitude=47.7),
                                                                               fake_weather(62),  "UNSAFE",  "doesn't match"),
+    ("Today, start time already passed", plan(date="2026-10-13", start_time="07:00"),
+                                                                              fake_weather(62),  "UNSAFE",  "already passed (it's now 08:00)"),
+    ("Today, start time still ahead",    plan(date="2026-10-13", start_time="09:00"),
+                                                                              fake_weather(62),  "SAFE",    None),
     ("Date already passed",              plan(date="2026-10-01"),             fake_weather(62),  "UNSAFE",  "already passed"),
     ("Too far from home (Portland)",     plan(latitude=45.52, longitude=-122.68),
                                                                               fake_weather(62),  "UNSAFE",  "drive limit"),
@@ -142,7 +148,7 @@ def main():
                  + [case + (None,) for case in EVENT_CASES])
     for description, test_plan, weather, expected, must_mention, history in all_cases:
         result = evaluate_plan(test_plan, weather, PROFILE, history, VERIFIED, TODAY,
-                               trusted=TRUSTED)
+                               trusted=TRUSTED, now=NOW)
         text = " ".join(result["problems"] + result["warnings"])
         ok = result["verdict"] == expected and (must_mention is None or must_mention in text)
         passed += ok
