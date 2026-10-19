@@ -18,7 +18,7 @@ sys.path.insert(0, str(EVALS_DIR))
 from run_evals import row_cost, wilson  # noqa: E402
 from scenarios import SCENARIOS  # noqa: E402
 
-VARIANTS = [("baseline", "Haiku 5.5"), ("v1", "Sonnet 5.5")]
+VARIANTS = [("baseline", "Haiku 5.5"), ("v1", "Sonnet 5.5"), ("v2", "Haiku 5.5 + fixes")]
 
 
 def load(variant: str) -> list:

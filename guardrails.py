@@ -129,7 +129,10 @@ def evaluate_plan(plan: dict, hourly: list | None, profile: dict,
         entry = next((e for e in trusted
                       if memory.same_place(e["name"], plan["place_name"])), None)
         if entry is None:
-            problems.append(f"{plan['place_name']} isn't on the owner's trusted list.")
+            problems.append(
+                f"{plan['place_name']} isn't on the owner's trusted list. If it came "
+                "from past outings (recall_outings), use source 'memory' instead."
+            )
         elif entry.get("data_problem"):
             problems.append(
                 f"The trusted list entry for {entry['name']} has a data problem: "
@@ -142,6 +145,15 @@ def evaluate_plan(plan: dict, hourly: list | None, profile: dict,
                 f"The location in this plan doesn't match the trusted list entry "
                 f"for {entry['name']}. Use the location from the list, and if it "
                 "looks wrong, tell the owner instead of changing it."
+            )
+
+    # A plan that says "from memory" must be a place the owner has really been.
+    # (It isn't held to the trusted-list rule above: memory is a different source.)
+    if plan["source"] == "memory" and outings is not None:
+        if not any(memory.same_place(o["place_name"], plan["place_name"]) for o in outings):
+            problems.append(
+                f"{plan['place_name']} isn't in the saved outings. Use the source "
+                "it really came from."
             )
 
     # --- Rule 1: dogs must be allowed ---------------------------------------
@@ -318,9 +330,11 @@ SUBMIT_PLAN_TOOL = {
             },
             "source": {
                 "type": "string",
-                "enum": ["my_list", "map", "web_search"],
-                "description": ("Where this came from: the owner's trusted list, map "
-                                "data (OpenStreetMap), or search_events."),
+                "enum": ["my_list", "memory", "map", "web_search"],
+                "description": ("Where this came from: 'my_list' = the owner's trusted "
+                                "list (list_my_events) only; 'memory' = a place from past "
+                                "outings (recall_outings); 'map' = map data "
+                                "(OpenStreetMap); 'web_search' = search_events."),
             },
             "source_url": {
                 "type": "string",

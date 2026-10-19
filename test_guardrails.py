@@ -89,6 +89,13 @@ MEMORY_CASES = [
     ("Name match is loose",              plan(place_name="test trail loop"),  fake_weather(62),  "CAUTION", "rated 2/5",         HISTORY),
     ("Good past visit: no warning",      plan(place_name="Happy Park"),       fake_weather(62),  "SAFE",    None,                HISTORY),
     ("No history: no warning",           plan(),                              fake_weather(62),  "SAFE",    None,                []),
+    # The "memory" source: a place from past outings, not from the trusted list.
+    ("Place from memory",                plan(place_name="Happy Park", source="memory"),
+                                                                              fake_weather(62),  "SAFE",    None,                HISTORY),
+    ("Memory source, never visited",     plan(place_name="Never Been Park", source="memory"),
+                                                                              fake_weather(62),  "UNSAFE",  "isn't in the saved outings", HISTORY),
+    ("Memory place mislabeled my_list",  plan(place_name="Happy Park", source="my_list"),
+                                                                              fake_weather(62),  "UNSAFE",  "use source 'memory'", HISTORY),
 ]
 
 
