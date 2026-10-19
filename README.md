@@ -7,6 +7,7 @@ An AI agent that plans dog-friendly outings for Thea and Nico, two German Shephe
 - **Stage 3:** long-term memory. The agent remembers past outings, star ratings and how Thea and Nico did, and asks before saving anything.
 - **Stage 4:** events. Breweries, patios, festivals, markets and training classes from three sources with different trust levels, with web content handled as untrusted input.
 - **Stage 5:** deployment. Every Monday at 7 AM Pacific, GitHub Actions runs the agent unattended and emails the week's plan privately.
+- **Stage 6:** evaluations. 12 realistic scenarios, each run 3 times in a fixed test world, graded by code checks and an AI judge. **[See the scorecard →](evals/SCORECARD.md)**
 
 ---
 
@@ -54,6 +55,7 @@ You ask a question
 | `test_events.py` | 13 tests for the code checks on web events and the trusted list, including a simulated prompt-injection attack and a location typo. Free and offline. |
 | `weekly_report.py` | The weekly report: runs the agent unattended and emails the plan. |
 | `.github/workflows/weekly-pack-plan.yml` | The schedule: tells GitHub Actions to run the weekly report every Monday at 7 AM Pacific. |
+| `evals/` | Stage 6: the eval suite. `SCENARIOS.md` (the 12 scenarios), `SCORECARD.md` (the results), `fixtures.py` (the fake test world), `scenarios.py` (checks and judge checklists), `run_evals.py` (runs everything), `run_case.py` (runs and grades one scenario). |
 | `test_tools.py` | Runs the lookup tools by themselves, with no AI and no cost. |
 | `guardrail_log.jsonl` | Created automatically. One line per safety check: what was checked and the verdict. |
 
@@ -219,6 +221,38 @@ C:\Users\ryanb\.venvs\pack-planner\Scripts\python weekly_report.py --print
 
 ---
 
+## Evaluations (Stage 6)
+
+The 59 tests check that the **code** works. But the agent is built on an AI model, which doesn't answer the same way every time, so a single passing run proves little. Evals measure **how often the whole agent does the right thing**.
+
+| | Tests | Evals |
+|---|---|---|
+| What's checked | One piece of code | The whole agent, Claude included |
+| Same result every run? | Yes | No, so each scenario runs 3 times |
+| Result | Pass or fail | A score with a confidence range |
+| Cost | Free | About 1 cent per run with Haiku |
+
+**How it works:**
+- **12 scenarios** from the project's real risks: heat, distance, Thea and busy trails, the trusted list, a location typo, a fake link, a prompt injection, saving memory, an ambiguous place, a date beyond the forecast. ([SCENARIOS.md](evals/SCENARIOS.md))
+- **A fixed, fictional test world.** Weather, maps and web search return made-up data, so scores measure the agent, not the weather. Everything else (the agent loop, guardrails, event checks) is the real code.
+- **Three graders:** code checks on the tool calls, an AI judge (Claude Sonnet 5.5) with a written checklist, and a human review of every failure.
+- **Safety is scored separately** and should be 100%.
+
+**First results** ([full scorecard](evals/SCORECARD.md)):
+- No dangerous recommendation in 68 runs. Every heat block, distance block, prompt injection, fake link and memory save was handled correctly.
+- Most failures were **grading mistakes**: a rule conflict and a check that couldn't tell quoting an attack from obeying it. Finding those is part of building an eval.
+- One real agent bug: memory places get mislabeled as trusted-list places.
+- **Haiku vs. Sonnet:** Sonnet's answers were slightly better (3.94 vs 3.78 out of 5), but it didn't pass more scenarios, at about 6× the cost. Decision: keep Haiku.
+
+**Run it** (needs API credit; about $0.40 for Haiku, $2 for Sonnet):
+```powershell
+C:\Users\ryanb\.venvs\pack-planner\Scripts\python evals\run_evals.py --variant baseline --model claude-haiku-5-5
+C:\Users\ryanb\.venvs\pack-planner\Scripts\python evals\scorecard.py
+```
+Detailed results and full conversations stay on this computer, in `.claude/hillclimb/` (kept off GitHub).
+
+---
+
 ## Setup (do these in order)
 
 All commands are for **PowerShell**.
@@ -332,4 +366,4 @@ Write down what happens in each one; those notes become your interview answers.
 - ~~**Stage 3:** Memory.~~ Done
 - ~~**Stage 4:** Events.~~ Done
 - ~~**Stage 5:** Weekly scheduled plan, deployed to the cloud.~~ Done
-- **Stage 6:** Evaluations. Test cases that measure how often the whole agent is right.
+- ~~**Stage 6:** Evaluations.~~ Done
