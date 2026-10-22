@@ -1,8 +1,13 @@
 # Stage 5: run the weekly report every Monday at 7 AM Pacific.
 #
 # GitHub's schedule only uses UTC, which doesn't follow daylight saving, so
-# this runs at both 14:00 and 15:00 UTC. weekly_report.py continues only for
-# the one that is 7 AM Pacific that week.
+# this runs at both 13:37 and 14:37 UTC. weekly_report.py continues only for
+# the one that is 6:37 AM Pacific that week.
+#
+# Why :37 and not 7:00 sharp? GitHub is busiest at the top of each hour, and
+# a run scheduled for exactly 14:00 UTC started about 5.5 hours late on
+# 2026-10-19. Starting a little early, at an off-peak minute, is GitHub's
+# advice for getting scheduled runs on time.
 #
 # This repo is public, so these run logs are public too. weekly_report.py
 # never prints the plan; it only goes out by email.
@@ -11,8 +16,8 @@ name: Weekly Pack Plan
 
 on:
   schedule:
-    - cron: "0 14 * * 1"  # 7 AM Pacific Daylight Time
-    - cron: "0 15 * * 1"  # 7 AM Pacific Standard Time
+    - cron: "37 13 * * 1"  # 6:37 AM Pacific Daylight Time
+    - cron: "37 14 * * 1"  # 6:37 AM Pacific Standard Time
   workflow_dispatch:      # adds a "Run workflow" button for testing
 
 permissions:

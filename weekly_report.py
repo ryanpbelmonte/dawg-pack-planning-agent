@@ -33,11 +33,13 @@ import agent
 PACIFIC = ZoneInfo("America/Los_Angeles")
 
 # GitHub's schedule only understands UTC time, which doesn't follow daylight
-# saving. So the workflow runs at both 14:00 and 15:00 UTC on Mondays, and
-# this picks whichever one is 7:00 AM in Pacific time this week.
+# saving. So the workflow runs at both 13:37 and 14:37 UTC on Mondays, and
+# this picks whichever one is 6:37 AM in Pacific time this week. (A bit before
+# 7 AM, at an off-peak minute, because GitHub often starts top-of-the-hour
+# runs late.) These must match the cron lines in the workflow file exactly.
 CRON_FOR_PACIFIC_OFFSET = {
-    -7: "0 14 * * 1",  # Pacific Daylight Time (March-November)
-    -8: "0 15 * * 1",  # Pacific Standard Time (November-March)
+    -7: "37 13 * * 1",  # Pacific Daylight Time (March-November)
+    -8: "37 14 * * 1",  # Pacific Standard Time (November-March)
 }
 
 

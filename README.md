@@ -268,8 +268,8 @@ The safety rules are the same in both: every suggestion still goes through `subm
 - **Commits use GitHub's private "noreply" email address,** so personal email addresses don't appear in the project history.
 
 ### Scheduling details
-- GitHub's schedule only uses UTC, which doesn't follow daylight saving. The workflow runs at 14:00 and 15:00 UTC on Mondays, and `weekly_report.py` continues only for the one that's 7 AM Pacific that week.
-- GitHub can start scheduled runs a few minutes late when it's busy.
+- GitHub's schedule only uses UTC, which doesn't follow daylight saving. The workflow runs at 13:37 and 14:37 UTC on Mondays, and `weekly_report.py` continues only for the one that's 6:37 AM Pacific that week.
+- **GitHub can start scheduled runs late, sometimes by hours.** The first real Monday run was scheduled for exactly 7:00 AM and started about 5.5 hours late, because the top of the hour is GitHub's busiest time. So the schedule now starts at 6:37 AM, an off-peak minute a little early, which is GitHub's own advice. It's still not guaranteed: GitHub doesn't promise exact start times.
 - **Limits:** each run stops after 15 minutes, uses Claude Haiku, and has the same caps on tool rounds and web searches as a conversation. A run costs a few cents.
 - **If a run fails,** GitHub emails the repo owner, and the run's log shows the type of error.
 
