@@ -76,7 +76,7 @@ You: Can we go for a hike near Renton tomorrow at 2pm?
   [tool] submit_plan({'place_name': 'Maple Ridge Loop', 'source': 'map', 'start_time': '08:00', 'distance_miles': 7.5, ...})
   [guardrail] Maple Ridge Loop: UNSAFE     <- "7.5 miles is longer than the 6-mile maximum"
 
-Dawg Pack Planner: **Top pick: Fern Hollow Trail, Tuesday 10/19 at 8:00am.** Tomorrow at 2pm
+Dawg Pack Planner: **Top pick: Fern Hollow Trail, Monday 10/19 at 8:00am.** Tomorrow at 2pm
 is 92°F, which is too hot for two double-coated dogs. Mornings start at 68°F and stay cool
 until about 9am.
 
