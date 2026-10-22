@@ -21,7 +21,7 @@ An AI agent that plans safe outings for my two German Shepherd / Husky mixes, Th
 
 **Jump to:** [How it works](#how-it-works) · [Sample run](#sample-run) · [Safety rules](#safety-rules) · [Evals](#evaluations) · [Experiments](#experiments-i-ran) · [Setup](#setup) · [Known limitations](#known-limitations)
 
-**Built with [Claude Code](https://claude.com/claude-code) (the CLI)** in about 6–7 hours of working time, spread over a few days. I directed the design, made the decisions and reviewed every result; Claude Code wrote most of the code and tests with me.
+**Built with [Claude Code](https://claude.com/claude-code) (the CLI)** in about 9 hours over 3 evenings. I directed the design, made the decisions and reviewed every result; Claude Code wrote most of the code and tests with me.
 
 ---
 
