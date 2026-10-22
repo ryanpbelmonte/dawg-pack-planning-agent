@@ -10,6 +10,7 @@ If you change a rule or a limit in dogs.json, run this again to make sure
 nothing broke. (This is a first step toward the "evals" in Stage 6.)
 """
 
+import sys
 from datetime import date, datetime
 
 from guardrails import evaluate_plan, load_profile
@@ -164,6 +165,7 @@ def main():
         if not ok:
             print(f"      problems: {result['problems']}\n      warnings: {result['warnings']}")
     print(f"\n{passed}/{len(all_cases)} passed")
+    sys.exit(0 if passed == len(all_cases) else 1)  # a non-zero exit tells GitHub Actions a test failed
 
 
 if __name__ == "__main__":

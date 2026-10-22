@@ -7,6 +7,7 @@ the quarantined web reader reported. No web search, no Claude.
 Run it with:   C:\\Users\\ryanb\\.venvs\\pack-planner\\Scripts\\python test_events.py
 """
 
+import sys
 from datetime import date
 
 from events import MAX_TEXT_LENGTH, list_my_events, trusted_entry_problem, validate_events
@@ -79,6 +80,7 @@ def main():
     check("Missing location is flagged", "missing" in (trusted_entry_problem(missing, HOME, 60) or ""))
 
     print(f"\n{sum(results)}/{len(results)} passed")
+    sys.exit(0 if all(results) else 1)  # a non-zero exit tells GitHub Actions a test failed
 
 
 if __name__ == "__main__":

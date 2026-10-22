@@ -52,6 +52,7 @@ def main():
         mark = "PASS" if ok else "FAIL"
         print(f"{mark}  {description:<48} expected obeys={expected!s:<5} got {got}")
     print(f"\n{passed}/{len(INJECTION_CASES)} passed")
+    sys.exit(0 if passed == len(INJECTION_CASES) else 1)  # a non-zero exit tells GitHub Actions a test failed
 
 
 if __name__ == "__main__":

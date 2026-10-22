@@ -4,3 +4,4 @@ __pycache__/
 guardrail_log.jsonl
 memory.json
 .claude/
+README.personal.md

@@ -1,0 +1,38 @@
+# Run the offline tests on every push and pull request.
+# They need no API key and no internet, so they're free to run.
+# (test_tools.py is left out because it calls the live map and weather services.)
+
+name: Tests
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read          # it only needs to read the code
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install packages
+        run: pip install -r requirements.txt
+
+      - name: Safety rules
+        run: python test_guardrails.py
+
+      - name: Memory
+        run: python test_memory.py
+
+      - name: Events and the trusted list
+        run: python test_events.py
+
+      - name: Eval grader
+        run: python evals/test_grader.py

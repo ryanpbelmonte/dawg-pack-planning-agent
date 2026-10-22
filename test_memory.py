@@ -7,6 +7,7 @@ touched.
 Run it with:   C:\\Users\\ryanb\\.venvs\\pack-planner\\Scripts\\python test_memory.py
 """
 
+import sys
 import tempfile
 from pathlib import Path
 
@@ -58,6 +59,7 @@ def main():
               echo_row["last_visit"] == "2026-10-01")
 
     print(f"\n{sum(results)}/{len(results)} passed")
+    sys.exit(0 if all(results) else 1)  # a non-zero exit tells GitHub Actions a test failed
 
 
 if __name__ == "__main__":
