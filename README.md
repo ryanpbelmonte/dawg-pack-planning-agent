@@ -5,6 +5,8 @@
 ![Claude API](https://img.shields.io/badge/Claude-Haiku%205.5-orange)
 ![License: MIT](https://img.shields.io/badge/license-MIT-green)
 
+<img src="docs/images/Thea_and_Nico_photo.jpeg" alt="Thea and Nico, two German Shepherd / Husky mixes, sitting on a tree stump on a forest trail" width="240" align="right">
+
 An AI agent that plans safe outings for my two German Shepherd / Husky mixes, Thea and Nico. It finds trails, parks and dog-friendly events, checks the weather, remembers how past outings went, and emails a plan every Monday. Built from scratch in Python on the Claude API, with no agent framework. (The name is a nod to my Husky mixes and the UW Huskies' "Dawg Pack.")
 
 **What makes it interesting:**
