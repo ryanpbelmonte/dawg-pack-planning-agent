@@ -14,6 +14,9 @@ An AI agent that plans safe outings for my two German Shepherd / Husky mixes, Th
 - **Deployed.** A scheduled GitHub Actions job runs the agent unattended every Monday and emails the week's plan, with nothing personal in the public logs.
 - **70 offline tests**, run automatically on every push.
 
+![A live run of Dawg Pack Planner in Windows Terminal](docs/images/live-run.png)
+*A live run (real weather and maps, with the example memory file): the agent picks its own tools, every plan goes through the code safety check (`[guardrail]`), and the safety notes at the end are added by code.*
+
 **Jump to:** [How it works](#how-it-works) · [Sample run](#sample-run) · [Safety rules](#safety-rules) · [Evals](#evaluations) · [Experiments](#experiments-i-ran) · [Setup](#setup) · [Known limitations](#known-limitations)
 
 **Built with [Claude Code](https://claude.com/claude-code) (the CLI)** in about 6–7 hours of working time, spread over a few days. I directed the design, made the decisions and reviewed every result; Claude Code wrote most of the code and tests with me.
